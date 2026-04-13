@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Macros">
+<title>Macro Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0d0d0d; --surface: #111111; --border: #1e1e1e; --border2: #161616;
+    --text: #f0f0f0; --muted: #a0a0a0; --dim: #555555; --dimmer: #333333;
+    --input-bg: #161616; --accent: #d4ff6b; --accent-dark: #0d0d0d;
+    --green: #6bffd4; --blue: #6bb8ff; --orange: #ff9f6b; --red: #ff6b6b; --gold: #ffd166;
+    --font-display: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); overscroll-behavior: none; }
+  body { padding: env(safe-area-inset-top, 40px) 0 env(safe-area-inset-bottom, 20px); }
+  #app { max-width: 480px; margin: 0 auto; padding: 28px 18px 40px; }
+
+  .header { margin-bottom: 28px; }
+  .header-eyebrow { font-size: 10px; letter-spacing: 0.2em; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+  .header-title { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+  .header-date { font-size: 10px; color: var(--dimmer); margin-top: 6px; letter-spacing: 0.05em; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 10px; }
+  .card-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; color: var(--dim); text-transform: uppercase; margin-bottom: 16px; }
+
+  .bar-row { margin-bottom: 14px; }
+  .bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; letter-spacing: 0.06em; }
+  .bar-label { color: var(--muted); text-transform: uppercase; }
+  .bar-value { color: var(--text); font-weight: 500; }
+  .bar-value.over { color: var(--red); }
+  .bar-value span { color: var(--dim); font-weight: 400; }
+  .bar-track { background: #1a1a1a; border-radius: 2px; height: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+
+  .remaining-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--border2); }
+  .rem-cell { text-align: center; }
+  .rem-val { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+  .rem-val.over { color: var(--red) !important; }
+  .rem-lbl { font-size: 7px; color: var(--dimmer); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
+
+  .btn-primary { width: 100%; padding: 13px; background: var(--accent); color: var(--accent-dark); border: none; border-radius: 6px; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; }
+  .btn-primary:active { opacity: 0.8; }
+  .btn-save { width: 100%; margin-top: 10px; padding: 11px; background: var(--accent); color: var(--accent-dark); border: none; border-radius: 6px; font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; }
+  .btn-reset { width: 100%; margin-top: 8px; padding: 11px; background: none; color: var(--red); border: 1px solid #2a1a1a; border-radius: 6px; font-family: var(--font-display); font-weight: 600; font-size: 11px; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; }
+  .btn-reset:active { background: #1a0a0a; }
+
+  input { background: var(--input-bg); border: 1px solid #222; border-radius: 6px; padding: 11px 12px; color: var(--text); font-family: var(--font-mono); font-size: 14px; outline: none; width: 100%; -webkit-appearance: none; }
+  input::placeholder { color: #383838; }
+  input:focus { border-color: #333; }
+  input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .input-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 12px; }
+  .input-lbl { font-size: 8px; color: var(--dimmer); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+  .goal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .goal-row-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .goal-row input { width: 90px; text-align: right; padding: 8px 10px; font-size: 13px; }
+
+  .log-header-row { display: grid; grid-template-columns: 1fr 38px 38px 38px 38px 42px 24px; gap: 3px; margin-bottom: 8px; }
+  .log-col-lbl { font-size: 8px; color: var(--dimmer); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+  .log-col-lbl:first-child { text-align: left; }
+  .log-entry { display: grid; grid-template-columns: 1fr 38px 38px 38px 38px 42px 24px; gap: 3px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border2); }
+  .log-name { font-size: 12px; color: #d0d0d0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-num { font-size: 11px; color: #888; text-align: center; }
+  .log-kd { font-size: 11px; color: var(--gold); text-align: center; }
+  .log-del { background: none; border: none; cursor: pointer; color: #2a2a2a; font-size: 16px; text-align: center; line-height: 1; padding: 4px; }
+  .log-del:active { color: var(--red); }
+  .log-total-row { display: grid; grid-template-columns: 1fr 38px 38px 38px 38px 42px 24px; gap: 3px; align-items: center; padding: 10px 0 0; border-top: 1px solid #222; margin-top: 4px; }
+  .log-total-lbl { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+  .log-total-num { font-size: 11px; color: var(--accent); text-align: center; font-weight: 500; }
+  .log-total-kd { font-size: 11px; color: var(--gold); text-align: center; font-weight: 500; }
+  .empty-state { text-align: center; padding: 30px; font-size: 11px; color: var(--dimmer); letter-spacing: 0.05em; }
+
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+  .tab { flex: 1; padding: 9px; background: none; border: none; border-radius: 7px; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--dim); cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+  .tab.active { background: var(--accent); color: var(--accent-dark); }
+
+  .week-day { border-top: 1px solid var(--border2); padding: 12px 0; }
+  .week-day:first-child { border-top: none; padding-top: 0; }
+  .week-day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .week-day-name { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text); }
+  .week-day-name.today { color: var(--accent); }
+  .week-day-kd { font-size: 11px; color: var(--gold); }
+  .week-macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .week-macro-cell { text-align: center; background: #0d0d0d; border-radius: 4px; padding: 6px 4px; }
+  .week-macro-val { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+  .week-macro-lbl { font-size: 8px; color: var(--dimmer); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
+  .week-empty { font-size: 10px; color: var(--dimmer); font-style: italic; text-align: center; padding: 6px 0; }
+  .week-summary-totals { margin-top: 14px; padding-top: 14px; border-top: 1px solid #222; }
+  .week-summary-title { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .week-totals-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .week-total-cell { text-align: center; }
+  .week-total-val { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+  .week-total-lbl { font-size: 8px; color: var(--dimmer); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Audio -->
+<audio id="snd-arnold" src="get to da choppa!.m4a" preload="auto"></audio>
+<audio id="snd-ronnie" src="YEAH BUDDY.mp3"        preload="auto"></audio>
+<audio id="snd-fat"    src="FAAAHH.mp3"            preload="auto"></audio>
+
+<script>
+const DEFAULT_GOALS = { calories:2500, protein:180, carbs:250, fat:70, budget:5 };
+const SHORT_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function todayKey(){ return new Date().toDateString(); }
+function getWeekKeys(){
+  const keys=[],now=new Date();
+  for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);keys.push(d.toDateString());}
+  return keys;
+}
+function loadState(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('macro-tracker-v2')||'{}');
+    const today=todayKey(), history=saved.history||{};
+    const entries=saved.todayKey===today?(saved.entries||[]):[];
+    if(saved.todayKey&&saved.todayKey!==today&&saved.entries?.length>0) history[saved.todayKey]=saved.entries;
+    return {goals:saved.goals||{...DEFAULT_GOALS},entries,todayKey:today,history};
+  }catch{return {goals:{...DEFAULT_GOALS},entries:[],todayKey:todayKey(),history:{}};}
+}
+function saveState(){try{localStorage.setItem('macro-tracker-v2',JSON.stringify(state));}catch{}}
+
+let state=loadState();
+let view='log';
+let formData={name:'',calories:'',protein:'',carbs:'',fat:'',price:''};
+
+function calcTotals(entries){
+  return entries.reduce((a,e)=>({
+    calories:a.calories+(Number(e.calories)||0),
+    protein: a.protein +(Number(e.protein) ||0),
+    carbs:   a.carbs   +(Number(e.carbs)   ||0),
+    fat:     a.fat     +(Number(e.fat)     ||0),
+    price:   a.price   +(Number(e.price)   ||0),
+  }),{calories:0,protein:0,carbs:0,fat:0,price:0});
+}
+function formatDate(){return new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
+function clamp(v){return Math.min(Math.max(v,0),100);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Unlock audio on first touch (required by iOS Safari)
+let audioUnlocked = false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  ['snd-arnold','snd-ronnie','snd-fat'].forEach(id=>{
+    const a=document.getElementById(id);
+    if(a){ a.play().then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{}); }
+  });
+}
+document.addEventListener('touchstart', unlockAudio, {once:true});
+document.addEventListener('click', unlockAudio, {once:true});
+
+function playSound(id){try{const a=document.getElementById(id);if(a){a.currentTime=0;a.play().catch(()=>{});}}catch{}}
+
+function render(){
+  const t=calcTotals(state.entries),g=state.goals;
+  const macros=[
+    {key:'calories',label:'Calories',unit:'kcal',color:'#d4ff6b',remLabel:'kcal'},
+    {key:'protein', label:'Protein', unit:'g',   color:'#6bffd4',remLabel:'pro'},
+    {key:'carbs',   label:'Carbs',   unit:'g',   color:'#6bb8ff',remLabel:'carb'},
+    {key:'fat',     label:'Fat',     unit:'g',   color:'#ff9f6b',remLabel:'fat'},
+  ];
+
+  const barsHTML=macros.map(m=>{
+    const cur=t[m.key],goal=g[m.key],pct=clamp((cur/goal)*100),over=cur>goal;
+    return `<div class="bar-row">
+      <div class="bar-header"><span class="bar-label">${m.label}</span>
+        <span class="bar-value ${over?'over':''}">${cur}<span>/${goal}${m.unit}</span></span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${over?'#ff6b6b':m.color}"></div></div>
+    </div>`;
+  }).join('')+`<div class="bar-row">
+    <div class="bar-header"><span class="bar-label">Spending</span>
+      <span class="bar-value ${t.price>g.budget?'over':''}">${t.price.toFixed(3)} KD<span>/${g.budget.toFixed(3)} KD</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${clamp((t.price/g.budget)*100)}%;background:${t.price>g.budget?'#ff6b6b':'#ffd166'}"></div></div>
+  </div>`;
+
+  const remHTML=[...macros.map(m=>({label:m.remLabel,val:g[m.key]-t[m.key],color:m.color,kd:false})),
+    {label:'KD left',val:g.budget-t.price,color:'#ffd166',kd:true}]
+    .map(r=>`<div class="rem-cell">
+      <div class="rem-val ${r.val<0?'over':''}" style="color:${r.val<0?'':r.color}">${r.kd?r.val.toFixed(2):r.val}</div>
+      <div class="rem-lbl">${r.label}</div></div>`).join('');
+
+  const entriesHTML=state.entries.length===0
+    ?`<div class="empty-state">no entries yet</div>`
+    :`<div class="log-header-row">
+        <div class="log-col-lbl">Food</div><div class="log-col-lbl">kcal</div>
+        <div class="log-col-lbl">pro</div><div class="log-col-lbl">carb</div>
+        <div class="log-col-lbl">fat</div><div class="log-col-lbl">KD</div><div></div>
+      </div>
+      ${state.entries.map(e=>`<div class="log-entry">
+        <div class="log-name">${esc(e.name)}</div>
+        <div class="log-num">${e.calories||0}</div><div class="log-num">${e.protein||0}</div>
+        <div class="log-num">${e.carbs||0}</div><div class="log-num">${e.fat||0}</div>
+        <div class="log-kd">${Number(e.price||0).toFixed(2)}</div>
+        <button class="log-del" onclick="removeEntry('${e.id}')">×</button>
+      </div>`).join('')}
+      <div class="log-total-row">
+        <div class="log-total-lbl">Total</div>
+        <div class="log-total-num">${t.calories}</div><div class="log-total-num">${t.protein}</div>
+        <div class="log-total-num">${t.carbs}</div><div class="log-total-num">${t.fat}</div>
+        <div class="log-total-kd">${t.price.toFixed(2)}</div><div></div>
+      </div>`;
+
+  const goalsHTML=`${macros.map(m=>`<div class="goal-row">
+    <span class="goal-row-lbl">${m.label} (${m.unit})</span>
+    <input type="number" min="0" id="goal-${m.key}" value="${g[m.key]}" inputmode="decimal">
+  </div>`).join('')}
+  <div class="goal-row"><span class="goal-row-lbl">Daily Budget (KD)</span>
+    <input type="number" min="0" step="0.001" id="goal-budget" value="${g.budget}" inputmode="decimal"></div>
+  <button class="btn-save" onclick="saveGoals()">Save Goals</button>
+  <button class="btn-reset" onclick="resetDay()">Reset Today's Log</button>`;
+
+  const weekKeys=getWeekKeys();
+  const weekHTML=weekKeys.map(key=>{
+    const isToday=key===state.todayKey;
+    const ents=isToday?state.entries:(state.history[key]||[]);
+    const wt=calcTotals(ents),d=new Date(key);
+    const dayName=isToday?'Today':SHORT_DAYS[d.getDay()];
+    const dateStr=`${d.getMonth()+1}/${d.getDate()}`;
+    const hasData=ents.length>0;
+    return `<div class="week-day">
+      <div class="week-day-header">
+        <span class="week-day-name ${isToday?'today':''}">${dayName} <span style="color:var(--dim);font-weight:400;font-size:10px">${dateStr}</span></span>
+        ${hasData?`<span class="week-day-kd">${wt.price.toFixed(3)} KD</span>`:''}
+      </div>
+      ${hasData?`<div class="week-macros">
+        ${[{l:'kcal',v:wt.calories,c:'#d4ff6b'},{l:'pro',v:wt.protein,c:'#6bffd4'},
+           {l:'carb',v:wt.carbs,c:'#6bb8ff'},{l:'fat',v:wt.fat,c:'#ff9f6b'}]
+          .map(m=>`<div class="week-macro-cell"><div class="week-macro-val" style="color:${m.c}">${m.v}</div><div class="week-macro-lbl">${m.l}</div></div>`).join('')}
+      </div>`:`<div class="week-empty">no data</div>`}
+    </div>`;
+  }).join('');
+
+  const allW=weekKeys.flatMap(k=>k===state.todayKey?state.entries:(state.history[k]||[]));
+  const wT=calcTotals(allW);
+  const weekSummaryHTML=`<div class="week-summary-totals"><div class="week-summary-title">7-Day Totals</div>
+    <div class="week-totals-grid">
+      ${[{l:'kcal',v:wT.calories,c:'#d4ff6b'},{l:'protein',v:wT.protein,c:'#6bffd4'},
+         {l:'carbs',v:wT.carbs,c:'#6bb8ff'},{l:'fat',v:wT.fat,c:'#ff9f6b'},
+         {l:'spent KD',v:wT.price.toFixed(2),c:'#ffd166'}]
+        .map(m=>`<div class="week-total-cell"><div class="week-total-val" style="color:${m.c}">${m.v}</div><div class="week-total-lbl">${m.l}</div></div>`).join('')}
+    </div></div>`;
+
+  document.getElementById('app').innerHTML=`
+    <div class="header">
+      <div class="header-eyebrow">Daily</div>
+      <h1 class="header-title">Macro Tracker</h1>
+      <div class="header-date">${formatDate()}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="card-label" style="margin-bottom:0">Progress</div>
+      </div>
+      ${barsHTML}<div class="remaining-grid">${remHTML}</div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab ${view==='log'?'active':''}" onclick="setView('log')">Add Food</button>
+      <button class="tab ${view==='week'?'active':''}" onclick="setView('week')">Week</button>
+      <button class="tab ${view==='goals'?'active':''}" onclick="setView('goals')">Goals</button>
+    </div>
+    <div class="card">
+      ${view==='log'?`
+        <div class="card-label">Add Food</div>
+        <input type="text" id="f-name" placeholder="Food name" value="${esc(formData.name)}" oninput="formData.name=this.value" onkeydown="if(event.key==='Enter')addEntry()">
+        <div class="input-group">
+          ${['calories','protein','carbs','fat'].map(f=>`<div>
+            <div class="input-lbl">${f}</div>
+            <input type="number" min="0" inputmode="decimal" id="f-${f}" value="${formData[f]}" placeholder="0" oninput="formData['${f}']=this.value" onkeydown="if(event.key==='Enter')addEntry()">
+          </div>`).join('')}
+          <div><div class="input-lbl" style="color:#a08040">KD</div>
+          <input type="number" min="0" step="0.001" inputmode="decimal" id="f-price" value="${formData.price}" placeholder="0" oninput="formData.price=this.value" onkeydown="if(event.key==='Enter')addEntry()"></div>
+        </div>
+        <button class="btn-primary" onclick="addEntry()">+ Add</button>
+        <div style="margin-top:18px"><div class="card-label">Today's Log</div>${entriesHTML}</div>
+      `:view==='week'?`
+        <div class="card-label">This Week</div>${weekHTML}${weekSummaryHTML}
+      `:`
+        <div class="card-label">Daily Goals</div>${goalsHTML}
+      `}
+    </div>`;
+}
+
+function setView(v){view=v;render();}
+
+function addEntry(){
+  const name=document.getElementById('f-name')?.value?.trim();
+  if(!name){document.getElementById('f-name')?.focus();return;}
+  const prev=calcTotals(state.entries);
+  const entry={
+    id:Date.now().toString(),name,
+    calories:document.getElementById('f-calories')?.value||'0',
+    protein: document.getElementById('f-protein')?.value ||'0',
+    carbs:   document.getElementById('f-carbs')?.value   ||'0',
+    fat:     document.getElementById('f-fat')?.value     ||'0',
+    price:   document.getElementById('f-price')?.value   ||'0',
+  };
+  state.entries.push(entry);
+  const next=calcTotals(state.entries);
+  checkProteinGoal(prev.protein, next.protein, state.goals.protein);
+  checkFatGoal(prev.fat, next.fat, state.goals.fat);
+  formData={name:'',calories:'',protein:'',carbs:'',fat:'',price:''};
+  saveState();render();
+}
+
+function removeEntry(id){state.entries=state.entries.filter(e=>e.id!==id);saveState();render();}
+
+function saveGoals(){
+  ['calories','protein','carbs','fat'].forEach(k=>{
+    const v=Number(document.getElementById(`goal-${k}`)?.value);
+    if(!isNaN(v)&&v>0)state.goals[k]=v;
+  });
+  const b=Number(document.getElementById('goal-budget')?.value);
+  if(!isNaN(b)&&b>0)state.goals.budget=b;
+  saveState();render();
+}
+
+function resetDay(){
+  if(confirm("Clear today's log?")){
+    state.entries=[];proteinFired=false;fatFired=false;saveState();render();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// AUDIO-ONLY TRIGGERS
+// ═══════════════════════════════════════════════════════
+let proteinFired = false;
+let fatFired = false;
+
+function checkProteinGoal(prev, next, goal){
+  if(!proteinFired && prev < goal && next >= goal){
+    proteinFired = true;
+    setTimeout(()=>{
+      Math.random()<0.5 ? playSound('snd-arnold') : playSound('snd-ronnie');
+    }, 300);
+  }
+}
+
+function checkFatGoal(prev, next, goal){
+  if(!fatFired && prev <= goal && next > goal){
+    fatFired = true;
+    playSound('snd-fat');
+  }
+}
+
+render();
+</script>
+</body>
+</html>
